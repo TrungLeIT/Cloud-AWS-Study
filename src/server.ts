@@ -1,8 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import { filterImageFromURL, deleteLocalFiles } from './util/util';
-import isUrl from 'is-url';
-
+import { Request, Response, NextFunction } from "express";
 (async () => {
 
     // Init the Express application
@@ -20,27 +19,20 @@ import isUrl from 'is-url';
     });
 
     // GET /filteredimage?image_url={{URL}}
-    app.get("/filteredimage", async (req, res) => {
+    app.get("/filteredimage", async (req: Request, res: Response, next: NextFunction) => {
         // get URL image
-        var imageUrl = req.query.image_url;
-        // validate Image
-        if (isUrl(imageUrl)) {
-            // call filterImageFromURL
-            try {
-                var filterdImage = await filterImageFromURL(imageUrl);
-                // send file for user
-                res.sendFile(filterdImage, function (err) {
-                    // delete file
-                    if (!err) {
-                        deleteLocalFiles([filterdImage]);
-
-                    }
-                });
-            } catch (e) {
-                res.send('image_url not found')
-            }
-        } else {
-            res.send('image_url invalid')
+        try {
+            let absolutePath: string = await filterImageFromURL(req.query.image_url) as string;
+            return res.status(200).sendFile(absolutePath, function (err) {
+                console.log("File downloaded ");
+                // delete file
+                if (!err) {
+                    deleteLocalFiles([absolutePath]);
+                    console.log("File deleted ");
+                }
+            });
+        } catch (e) {
+            return next(e);
         }
     });
 
